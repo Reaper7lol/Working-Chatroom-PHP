@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Chatroom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #36393f;
+        }
+
+        #chat-container {
+            width: 80%;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            background: #2f3136;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #202225;
+            color: #dcddde;
+        }
+
+        #chat-box p {
+            margin: 0;
+            padding: 10px 15px;
+            background: #40444b;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        #users-list {
+            padding: 20px;
+            background: #2f3136;
+            border-left: 1px solid #202225;
+            color: #dcddde;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        #users-list h3 {
+            margin-top: 0;
+            color: #7289da;
+        }
+
+        #users-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #users-list li {
+            padding: 10px;
+            border-bottom: 1px solid #202225;
+        }
+
+        #input-section {
+            padding: 10px;
+            background: #2f3136;
+            border-top: 1px solid #202225;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #message {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #202225;
+            border-radius: 8px;
+            background: #40444b;
+            color: #dcddde;
+            margin-right: 10px;
+            box-sizing: border-box;
+        }
+
+        #send-btn {
+            padding: 10px 20px;
+            background-color: #7289da;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #send-btn:hover {
+            background-color: #5b6eae;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div style="flex: 1; display: flex;">
+            <div id="chat-box"></div>
+            <div id="users-list">
+                <h3>Online Users</h3>
+                <ul id="user-list"></ul>
+            </div>
+        </div>
+        <div id="input-section">
+            <input type="text" id="message" placeholder="Type your message here...">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let username = '';
+
+        // Prompt for username when the page loads
+        while (!username) {
+            username = prompt('Enter your username:');
+            username = username.trim();
+        }
+
+        // Register user and start the chat
+        function registerUser() {
+            fetch('chat.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'username=' + encodeURIComponent(username)
+            });
+        }
+
+        // Fetch chat log and display it
+        function fetchChatLog() {
+            fetch('chat.php')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('chat-box').innerHTML = data;
+                    document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight; // Auto-scroll to bottom
+                });
+        }
+
+        // Fetch list of online users and display them
+        function fetchUsers() {
+            fetch('chat.php?type=users')
+                .then(response => response.json())
+                .then(data => {
+                    const userList = document.getElementById('user-list');
+                    userList.innerHTML = ''; // Clear the list
+                    data.forEach(user => {
+                        const li = document.createElement('li');
+                        li.textContent = user;
+                        userList.appendChild(li);
+                    });
+                });
+        }
+
+        // Function to send a new message
+        function sendMessage() {
+            const message = document.getElementById('message').value.trim();
+            if (message) {
+                fetch('chat.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'username=' + encodeURIComponent(username) + '&message=' + encodeURIComponent(message)
+                }).then(() => {
+                    document.getElementById('message').value = ''; // Clear input field
+                    fetchChatLog(); // Refresh chat log
+                });
+            }
+        }
+
+        // Function to log out the user
+        function logout() {
+            fetch('chat.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'username=' + encodeURIComponent(username) + '&logout=true'
+            }).then(() => {
+                window.location.reload(); // Reload the page to remove the user
+            });
+        }
+
+        // Event listeners
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+        document.getElementById('message').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Register the user and fetch chat log and users every 2 seconds
+        registerUser();
+        setInterval(fetchChatLog, 2000);
+        setInterval(fetchUsers, 2000);
+
+        // Initial fetch
+        fetchChatLog();
+        fetchUsers();
+
+        // Ensure user is logged out when the page is closed
+        window.addEventListener('beforeunload', logout);
+    </script>
+</body>
+</html>
