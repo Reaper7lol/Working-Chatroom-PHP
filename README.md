@@ -1,2 +1,5 @@
 # Working-Chatroom-PHP
-Works
+
+
+
+Import all code to serv00 or whatever you use
